@@ -301,10 +301,10 @@
                     // 自動設定為今天
                     const today = new Date();
                     const formatDate = (date) => {
-                         const y = date.getFullYear();
-                         const m = String(date.getMonth() + 1).padStart(2, '0');
-                         const d = String(date.getDate()).padStart(2, '0');
-                         return `${y}-${m}-${d}`;
+                           const y = date.getFullYear();
+                           const m = String(date.getMonth() + 1).padStart(2, '0');
+                           const d = String(date.getDate()).padStart(2, '0');
+                           return `${y}-${m}-${d}`;
                     };
                     document.getElementById('start-date').value = formatDate(today);
                     document.getElementById('end-date').value = formatDate(today);
@@ -442,11 +442,11 @@
                     </div>`;
                 }
 
-                // B. 睡眠 (藍色主題)
+                // B. 睡眠 (藍色主題) - **已修改**
                 sectionContent = '';
                 if (log['第一次 睡眠'] || log['第二次 睡眠'] || log['第三次 睡眠']) {
-                    if (log['第一次 睡眠']) sectionContent += `<div class="detail-item"><strong>第一次:</strong> ${extractTime(log['第一次 睡眠'])} (${log['睡眠狀況'] || 'N/A'})</div>`;
-                    if (log['第二次 睡眠']) sectionContent += `<div class="detail-item"><strong>第二次:</strong> ${extractTime(log['第二次 睡眠'])} (${log['第二次 睡眠狀況'] || 'N/A'})</div>`;
+                    if (log['第一次 睡眠']) sectionContent += `<div class="detail-item"><strong>第一次:</strong> ${extractTime(log['第一次 睡眠'])} (${log['第一次睡眠狀況'] || 'N/A'})</div>`;
+                    if (log['第二次 睡眠']) sectionContent += `<div class="detail-item"><strong>第二次:</strong> ${extractTime(log['第二次 睡眠'])} (${log['第二次睡眠狀況'] || 'N/A'})</div>`;
                     if (log['第三次 睡眠']) sectionContent += `<div class="detail-item"><strong>第三次:</strong> ${extractTime(log['第三次 睡眠']) || 'N/A'}</div>`;
                     
                     contentHTML += `<div class="log-section sleeping-theme">
@@ -454,11 +454,11 @@
                     </div>`;
                 }
                 
-                // C. 排便/清潔 (綠色主題)
+                // C. 排便/清潔 (綠色主題) - **已修改**
                 sectionContent = '';
                 if (log['第一次 排便'] || log['洗澡時間'] || log['換尿布時間']) {
-                    if (log['第一次 排便']) sectionContent += `<div class="detail-item"><strong>排便 1:</strong> ${extractTime(log['第一次 排便'])} (${log['排便狀態'] || 'N/A'})</div>`;
-                    if (log['第二次 排便']) sectionContent += `<div class="detail-item"><strong>排便 2:</strong> ${extractTime(log['第二次 排便'])} (${log['排便狀態'] || 'N/A'})</div>`;
+                    if (log['第一次 排便']) sectionContent += `<div class="detail-item"><strong>排便 1:</strong> ${extractTime(log['第一次 排便'])} (${log['第一次排便狀態'] || 'N/A'})</div>`;
+                    if (log['第二次 排便']) sectionContent += `<div class="detail-item"><strong>排便 2:</strong> ${extractTime(log['第二次 排便'])} (${log['第二次排便狀態'] || 'N/A'})</div>`;
                     if (log['第三次 排便']) sectionContent += `<div class="detail-item"><strong>排便 3:</strong> ${extractTime(log['第三次 排便']) || 'N/A'} (${log['第三次 排便狀態'] || 'N/A'})</div>`;
                     
                     if (log['排便過多次數(次)']) sectionContent += `<div class="detail-item"><strong>過多次數:</strong> ${log['排便過多次數(次)']} 次</div>`;
