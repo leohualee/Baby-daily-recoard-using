@@ -339,7 +339,7 @@
 
             // 使用修正後的函式，確保它們是本地時區的 00:00:00，避免時區偏移
             const startDate = parseDateForComparison(startDateStr);
-            const endDate = parseDateDateForComparison(endDateStr);
+            const endDate = parseDateForComparison(endDateStr);
             
             // 結束日期的比較範圍是到 "結束日期的下一天的午夜"
             if (endDate) {
@@ -426,7 +426,7 @@
                     }
                 }
 
-                // B. 睡眠 (藍色主題) - **已加入時長與狀態的雙重檢查，並使用「第一次睡眠時間」新欄位**
+                // B. 睡眠 (藍色主題) - **已修正欄位名稱為 第一次睡眠時間**
                 sectionContent = '';
                 if (log['第一次 睡眠'] || log['第二次 睡眠'] || log['第三次 睡眠']) {
                     
@@ -438,7 +438,7 @@
                         const duration = log['第一次睡眠時間'] || log['第一次 睡眠時間'] || 'N/A';
                         
                         sectionContent += `<div class="detail-item"><strong>第一次:</strong> ${extractTime(log['第一次 睡眠'])} (${status})</div>`;
-                        sectionContent += `<div class="detail-item"><strong>時間長度:</strong> ${duration}</div>`;
+                        sectionContent += `<div class="detail-item"><strong>時間:</strong> ${duration}</div>`;
                     }
                     
                     // 欄位名: 第二次 睡眠 (Time, 有空格)
@@ -449,38 +449,42 @@
                         const duration = log['第二次睡眠時間'] || log['第二次 睡眠時間'] || 'N/A';
                         
                         sectionContent += `<div class="detail-item"><strong>第二次:</strong> ${extractTime(log['第二次 睡眠'])} (${status})</div>`;
-                        sectionContent += `<div class="detail-item"><strong>時間長度:</strong> ${duration}</div>`;
+                        sectionContent += `<div class="detail-item"><strong>時間:</strong> ${duration}</div>`;
                     }
                     
                     // 欄位名: 第三次 睡眠 (Time, 有空格)
                     if (log['第三次 睡眠']) {
-                         // 第三次沒有狀態/時長欄位
+                         // 第三次沒有狀態/時間欄位
                          sectionContent += `<div class="detail-item"><strong>第三次:</strong> ${extractTime(log['第三次 睡眠']) || 'N/A'}</div>`;
                          sectionContent += `<div class="detail-item"></div>`; 
                     }
                     
                     contentHTML += `<div class="log-section sleeping-theme">
-                        <h4><span>😴</span> 睡眠狀況與時間長度</h4><div class="detail-row">${sectionContent}</div>
+                        <h4><span>😴</span> 睡眠狀況與時間</h4><div class="detail-row">${sectionContent}</div>
                     </div>`;
                 }
                 
-                // C. 排便/清潔 (綠色主題) - **排便狀態仍然維持無空格的名稱 (上次已確認無問題)**
+                // C. 排便/清潔 (綠色主題) 
                 sectionContent = '';
                 if (log['第一次 排便'] || log['洗澡時間'] || log['換尿布時間'] || log['口腔清潔或刷牙時間']) {
                     
                     // 欄位名: 第一次 排便 (有空格), 第一次排便狀態 (無空格)
-                    if (log['第一次 排便']) sectionContent += `<div class="detail-item"><strong>排便 1:</strong> ${extractTime(log['第一次 排便'])} (${log['第一次排便狀態'] || 'N/A'})</div>`;
+                    // 排便狀態也增加對有空格的容錯處理
+                    const status1 = log['第一次排便狀態'] || log['第一次 排便狀態'] || 'N/A';
+                    if (log['第一次 排便']) sectionContent += `<div class="detail-item"><strong>排便 1:</strong> ${extractTime(log['第一次 排便'])} (${status1})</div>`;
                     
                     // 欄位名: 第二次 排便 (有空格), 第二次排便狀態 (無空格)
-                    if (log['第二次 排便']) sectionContent += `<div class="detail-item"><strong>排便 2:</strong> ${extractTime(log['第二次 排便'])} (${log['第二次排便狀態'] || 'N/A'})</div>`;
+                    const status2 = log['第二次排便狀態'] || log['第二次 排便狀態'] || 'N/A';
+                    if (log['第二次 排便']) sectionContent += `<div class="detail-item"><strong>排便 2:</strong> ${extractTime(log['第二次 排便'])} (${status2})</div>`;
                     
                     // 欄位名: 第三次 排便 (有空格), 第三次排便狀態 (無空格)
-                    if (log['第三次 排便']) sectionContent += `<div class="detail-item"><strong>排便 3:</strong> ${extractTime(log['第三次 排便']) || 'N/A'} (${log['第三次排便狀態'] || 'N/A'})</div>`;
+                    const status3 = log['第三次排便狀態'] || log['第三次 排便狀態'] || 'N/A';
+                    if (log['第三次 排便']) sectionContent += `<div class="detail-item"><strong>排便 3:</strong> ${extractTime(log['第三次 排便']) || 'N/A'} (${status3})</div>`;
                     
                     // 欄位名: 排便過多次數(次), 洗澡時間, 口腔清潔或刷牙時間
                     if (log['排便過多次數(次)']) sectionContent += `<div class="detail-item"><strong>過多次數:</strong> ${log['排便過多次數(次)']} 次</div>`;
                     
-                    // 換尿布時間 (根據您提供的完整列表，此欄位名稱可能不存在，但保留邏輯以防萬一)
+                    // 換尿布時間 (此欄位不在您最新的清單，故保留上次使用的邏輯)
                     if (log['換尿布時間']) sectionContent += `<div class="detail-item"><strong>換尿布:</strong> ${extractTime(log['換尿布時間']) || 'N/A'}</div>`;
                     
                     // 洗澡時間
