@@ -68,6 +68,15 @@
             background-color: #5d7596;
         }
         
+        #print-button {
+            /* 列印按鈕使用不同顏色區隔 */
+            background-color: #28a745; 
+        }
+
+        #print-button:hover {
+            background-color: #1e7e34;
+        }
+
         #status-message {
             margin-left: 20px;
             font-weight: bold;
@@ -143,7 +152,7 @@
         .sleeping-theme { border-left-color: #17a2b8; }
         .diaper-theme { border-left-color: #28a745; }
         .health-theme { border-left-color: #dc3545; }
-        .contact-theme { border-left-color: #6c757d; } /* 新增聯絡事項主題 */
+        .contact-theme { border-left-color: #6c757d; } 
 
         .detail-row {
             display: flex;
@@ -161,6 +170,47 @@
         .detail-item strong {
             font-weight: bold;
             color: #333;
+        }
+
+        /* ****************************************************** */
+        /* 列印專用 CSS 區塊：確保列印（匯出 PDF）時排版整潔 */
+        /* ****************************************************** */
+        @media print {
+            /* 隱藏所有控制按鈕和狀態訊息 */
+            .controls, #status-message, h1 {
+                display: none !important;
+            }
+
+            /* 確保日誌主標題顯示 */
+            h2 {
+                display: block;
+                text-align: center;
+                margin-top: 0;
+                margin-bottom: 20px;
+            }
+
+            /* 移除背景顏色，節省墨水 */
+            body {
+                background-color: white !important;
+                margin: 0;
+                padding: 0;
+            }
+
+            /* 強制使用單欄佈局，確保卡片在 A4 紙上排版良好 */
+            #log-output {
+                display: block; /* 轉換為單一區塊 */
+                column-count: 1; /* 取消多欄 */
+            }
+
+            /* 確保每個日誌卡片完整顯示，避免跨頁截斷 */
+            .log-card {
+                box-shadow: none !important;
+                border: 1px solid #ccc;
+                margin-bottom: 15px;
+                padding: 0;
+                /* 強制讓瀏覽器在必要時可以分頁 */
+                page-break-inside: avoid; 
+            }
         }
     </style>
 </head>
@@ -180,6 +230,7 @@
         </div>
 
         <button onclick="filterAndDisplayLogs()">篩選並顯示日誌</button>
+        <button id="print-button" onclick="printLogs()">🖨️ 匯出列印 (PDF)</button>
         <span id="status-message">正在連線至 Google 獲取最新資料...</span>
     </div>
 
@@ -193,11 +244,26 @@
         let babyLogs = [];
                 
         // ***************************************************************
-        // *** Apps Script 服務的網頁應用程式 URL - 已更新 ***
+        // *** Apps Script 服務的網頁應用程式 URL - 請替換成您最新的URL ***
         // ***************************************************************
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxAK_RlwBEzCNZCufXKvnwbkFFgdT4ECQmadR5xIkOSWRCHoI-ji36MtJ2NX2SsWXFp/exec'; 
                 
         const statusMessage = document.getElementById('status-message');
+
+        /**
+         * 🚨 新增：列印功能函式
+         * 呼叫瀏覽器的列印對話框。
+         */
+        function printLogs() {
+            if (document.getElementById('log-output').children.length === 0 || 
+                document.getElementById('log-output').children[0].tagName === 'P') {
+                alert('請先篩選並載入日誌內容後再進行列印！');
+                return;
+            }
+            // 呼叫瀏覽器內建列印功能
+            window.print();
+        }
+
 
         /**
          * 修正日期選擇時的時區偏移。
@@ -210,7 +276,6 @@
             const month = parseInt(parts[1], 10) - 1; 
             const day = parseInt(parts[2], 10);
             
-            // 建立一個 Local Time (本地時區) 的日期物件，確保是該天的 00:00:00
             const localDate = new Date(year, month, day, 0, 0, 0, 0); 
 
             if (isNaN(localDate.getTime())) return null;
@@ -218,7 +283,7 @@
         }
 
         /**
-         * 🚨 終極修正版：強制扣除 38 分鐘。
+         * 處理 38 分鐘偏移問題。
          */
         function extractTime(dateString) {
             if (!dateString) return '';
@@ -226,22 +291,16 @@
             const d = new Date(str);
 
             if (isNaN(d.getTime())) {
-                // 如果無法解析為日期，嘗試尋找純時間字串
                 const timeMatch = str.match(/(\d{1,2}:\d{2})/);
                 if (timeMatch) return timeMatch[0];
                 return '';
             }
 
-            // 檢查是否為 Apps Script 導致偏移的純時間欄位（通常年份小於 1900）
             if (d.getFullYear() <= 1900) {
-                // 38 分鐘 = 2,280,000 毫秒
                 const OFFSET_MS = 38 * 60 * 1000; 
-                
-                // 扣除 38 分鐘
                 const correctedTime = d.getTime() - OFFSET_MS;
                 const correctedDate = new Date(correctedTime);
                 
-                // 確保小時數是兩位數
                 return correctedDate.toLocaleTimeString('zh-TW', { 
                     hour: '2-digit', 
                     minute: '2-digit', 
@@ -249,7 +308,6 @@
                 });
             }
             
-            // 對於完整的時間戳記 (Column A)，使用瀏覽器本地時間
             return d.toLocaleTimeString('zh-TW', { 
                 hour: '2-digit', 
                 minute: '2-digit', 
@@ -258,7 +316,7 @@
         }
 
 
-        // 1. 載入資料：從 Apps Script URL 獲取 JSON 資料
+        // 1. 載入資料：從 Apps Script URL 獲取 JSON 資料 (連線修正版)
         function loadBabyLogs() {
             statusMessage.textContent = '正在從雲端獲取最新日誌資料...';
             statusMessage.style.color = '#d9534f';
@@ -268,19 +326,29 @@
             fetch(cacheBusterUrl)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+                        return response.text().then(text => {
+                            throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}. 伺服器回應: ${text.substring(0, 100)}...`);
+                        });
                     }
-                    return response.json();
+                    // 核心修正：使用 response.text()
+                    return response.text(); 
                 })
-                .then(data => {
+                .then(text => {
+                    // 核心修正：手動解析 JSON
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('解析 JSON 失敗，伺服器回傳了非 JSON 格式的內容。');
+                    }
+                    
                     if (data.error) {
                         statusMessage.textContent = `Apps Script 錯誤: ${data.error}`;
                         return;
                     }
-                    
+
                     babyLogs = data.map(log => {
                         const fullTimestamp = String(log['時間戳記']);
-                        // 這裡使用內建的 Date 轉換來獲取顯示的日期部分
                         const parsedDate = new Date(fullTimestamp); 
                         const datePart = isNaN(parsedDate.getTime()) ? '' : parsedDate.toLocaleDateString('zh-TW', {
                             year: 'numeric',
@@ -299,7 +367,6 @@
                     statusMessage.textContent = `資料載入成功！共 ${babyLogs.length} 筆最新記錄。`;
                     statusMessage.style.color = '#4CAF50'; 
 
-                    // 自動設定為今天
                     const today = new Date();
                     const formatDate = (date) => {
                            const y = date.getFullYear();
@@ -313,13 +380,13 @@
                     filterAndDisplayLogs();
                 })
                 .catch(error => {
-                    statusMessage.textContent = '連線失敗，請檢查 Apps Script 設定是否正確。';
+                    statusMessage.textContent = '連線失敗，請檢查 Apps Script 設定或執行記錄。' + (error.message ? ` [錯誤詳情: ${error.message}]` : '');
                     console.error('Fetch Error:', error);
                 });
         }
 
 
-        // 2. 篩選與顯示邏輯
+        // 2. 篩選與顯示邏輯 (無變動)
         function filterAndDisplayLogs() {
             const outputDiv = document.getElementById('log-output');
             outputDiv.innerHTML = ''; 
@@ -337,25 +404,21 @@
                 return; 
             }
 
-            // 使用修正後的函式，確保它們是本地時區的 00:00:00，避免時區偏移
             const startDate = parseDateForComparison(startDateStr);
             const endDate = parseDateForComparison(endDateStr);
             
-            // 結束日期的比較範圍是到 "結束日期的下一天的午夜"
             if (endDate) {
                 endDate.setDate(endDate.getDate() + 1); 
             }
 
 
             const filteredLogs = babyLogs.filter(log => {
-                // 將資料庫的時間戳記轉換為毫秒數，以便與篩選的本地時間範圍比較
                 const logTime = new Date(log['完整時間戳記']).getTime(); 
                 
                 if (isNaN(logTime) || !startDate || !endDate) {
                     return false; 
                 }
 
-                // 篩選： logTime 必須 >= 起始日期的本地午夜 AND < 結束日期的下一天的本地午夜
                 return logTime >= startDate.getTime() && logTime < endDate.getTime();
             }).sort((a, b) => {
                 const timeA = new Date(a['完整時間戳記']).getTime();
@@ -389,16 +452,9 @@
                 if (log['早餐時間'] || log['午餐時間'] || log['點心時間'] || log['喝奶時間']) {
                     let foodDetails = [];
 
-                    // 欄位名: 早餐時間, 早餐餐點
                     if (log['早餐時間']) foodDetails.push({ time: extractTime(log['早餐時間']), label: "早餐", food: log['早餐餐點'] });
-                    
-                    // 欄位名: 午餐時間, 午餐餐點
                     if (log['午餐時間']) foodDetails.push({ time: extractTime(log['午餐時間']), label: "午餐", food: log['午餐餐點'] });
-                    
-                    // 欄位名: 點心時間, 點心餐點
                     if (log['點心時間']) foodDetails.push({ time: extractTime(log['點心時間']), label: "點心", food: log['點心餐點'] });
-
-                    // 欄位名: 喝奶時間, 奶量(cc)
                     if (log['喝奶時間']) {
                         foodDetails.push({ time: extractTime(log['喝奶時間']), label: "喝奶", amount: log['奶量(cc)'], isMilk: true });
                     }
@@ -426,35 +482,27 @@
                     }
                 }
 
-                // B. 睡眠 (藍色主題) - **已修正欄位名稱為 第一次睡眠時間**
+                // B. 睡眠 (藍色主題) 
                 sectionContent = '';
                 if (log['第一次 睡眠'] || log['第二次 睡眠'] || log['第三次 睡眠']) {
                     
-                    // 欄位名: 第一次 睡眠 (Time, 有空格)
                     if (log['第一次 睡眠']) {
-                        // 雙重檢查：嘗試 '第一次睡眠狀況'(無空格) 或 '第一次 睡眠狀況'(有空格)
                         const status = log['第一次睡眠狀況'] || log['第一次 睡眠狀況'] || 'N/A';
-                        // 雙重檢查：嘗試 '第一次睡眠時間'(無空格) 或 '第一次 睡眠時間'(有空格)
                         const duration = log['第一次睡眠時間'] || log['第一次 睡眠時間'] || 'N/A';
                         
                         sectionContent += `<div class="detail-item"><strong>第一次:</strong> ${extractTime(log['第一次 睡眠'])} (${status})</div>`;
-                        sectionContent += `<div class="detail-item"><strong>時間:</strong> ${duration}</div>`;
+                        sectionContent += `<div class="detail-item"><strong>時長:</strong> ${duration}</div>`;
                     }
                     
-                    // 欄位名: 第二次 睡眠 (Time, 有空格)
                     if (log['第二次 睡眠']) {
-                        // 雙重檢查：嘗試 '第二次睡眠狀況'(無空格) 或 '第二次 睡眠狀況'(有空格)
                         const status = log['第二次睡眠狀況'] || log['第二次 睡眠狀況'] || 'N/A';
-                        // 雙重檢查：嘗試 '第二次睡眠時間'(無空格) 或 '第二次 睡眠時間'(有空格)
                         const duration = log['第二次睡眠時間'] || log['第二次 睡眠時間'] || 'N/A';
                         
                         sectionContent += `<div class="detail-item"><strong>第二次:</strong> ${extractTime(log['第二次 睡眠'])} (${status})</div>`;
-                        sectionContent += `<div class="detail-item"><strong>時間:</strong> ${duration}</div>`;
+                        sectionContent += `<div class="detail-item"><strong>時長:</strong> ${duration}</div>`;
                     }
                     
-                    // 欄位名: 第三次 睡眠 (Time, 有空格)
                     if (log['第三次 睡眠']) {
-                         // 第三次沒有狀態/時間欄位
                          sectionContent += `<div class="detail-item"><strong>第三次:</strong> ${extractTime(log['第三次 睡眠']) || 'N/A'}</div>`;
                          sectionContent += `<div class="detail-item"></div>`; 
                     }
@@ -468,29 +516,21 @@
                 sectionContent = '';
                 if (log['第一次 排便'] || log['洗澡時間'] || log['換尿布時間'] || log['口腔清潔或刷牙時間']) {
                     
-                    // 欄位名: 第一次 排便 (有空格), 第一次排便狀態 (無空格)
-                    // 排便狀態也增加對有空格的容錯處理
                     const status1 = log['第一次排便狀態'] || log['第一次 排便狀態'] || 'N/A';
                     if (log['第一次 排便']) sectionContent += `<div class="detail-item"><strong>排便 1:</strong> ${extractTime(log['第一次 排便'])} (${status1})</div>`;
                     
-                    // 欄位名: 第二次 排便 (有空格), 第二次排便狀態 (無空格)
                     const status2 = log['第二次排便狀態'] || log['第二次 排便狀態'] || 'N/A';
                     if (log['第二次 排便']) sectionContent += `<div class="detail-item"><strong>排便 2:</strong> ${extractTime(log['第二次 排便'])} (${status2})</div>`;
                     
-                    // 欄位名: 第三次 排便 (有空格), 第三次排便狀態 (無空格)
                     const status3 = log['第三次排便狀態'] || log['第三次 排便狀態'] || 'N/A';
                     if (log['第三次 排便']) sectionContent += `<div class="detail-item"><strong>排便 3:</strong> ${extractTime(log['第三次 排便']) || 'N/A'} (${status3})</div>`;
                     
-                    // 欄位名: 排便過多次數(次), 洗澡時間, 口腔清潔或刷牙時間
                     if (log['排便過多次數(次)']) sectionContent += `<div class="detail-item"><strong>過多次數:</strong> ${log['排便過多次數(次)']} 次</div>`;
                     
-                    // 換尿布時間 (此欄位不在您最新的清單，故保留上次使用的邏輯)
                     if (log['換尿布時間']) sectionContent += `<div class="detail-item"><strong>換尿布:</strong> ${extractTime(log['換尿布時間']) || 'N/A'}</div>`;
                     
-                    // 洗澡時間
                     if (log['洗澡時間']) sectionContent += `<div class="detail-item"><strong>洗澡:</strong> ${extractTime(log['洗澡時間']) || 'N/A'}</div>`;
                     
-                    // 口腔清潔或刷牙時間
                     if (log['口腔清潔或刷牙時間']) sectionContent += `<div class="detail-item"><strong>口腔清潔:</strong> ${extractTime(log['口腔清潔或刷牙時間']) || 'N/A'}</div>`;
                     
                     contentHTML += `<div class="log-section diaper-theme">
@@ -501,7 +541,6 @@
 
                 // D. 體溫/情緒/意外 (紅色主題)
                 sectionContent = '';
-                // 欄位名: 體溫
                 if (log['體溫'] && String(log['體溫']).trim() !== '' && log['體溫'] !== 'N/A') {
                     sectionContent += `<div class="detail-item"><strong>體溫:</strong> ${log['體溫']}°C</div>`;
                 }
@@ -528,17 +567,14 @@
                 if (log['褓姆聯絡事項'] || log['對於今日寶寶狀況分享與回饋'] || log['寶寶活動狀況']) {
                     sectionContent = '';
                     
-                    // 欄位名: 寶寶活動狀況
                     if (log['寶寶活動狀況'] && String(log['寶寶活動狀況']).trim() !== '') {
                         sectionContent += `<div class="detail-row"><div class="detail-item"><strong>寶寶活動狀況:</strong> ${log['寶寶活動狀況']}</div></div>`;
                     }
                     
-                    // 欄位名: 褓姆聯絡事項
                     if (log['褓姆聯絡事項'] && String(log['褓姆聯絡事項']).trim() !== '') {
                         sectionContent += `<div class="detail-row"><div class="detail-item"><strong>褓姆聯絡事項:</strong> ${log['褓姆聯絡事項']}</div></div>`;
                     }
                     
-                    // 欄位名: 對於今日寶寶狀況分享與回饋
                     if (log['對於今日寶寶狀況分享與回饋'] && String(log['對於今日寶寶狀況分享與回饋']).trim() !== '') {
                         sectionContent += `<div class="detail-row"><div class="detail-item"><strong>家長回饋:</strong> ${log['對於今日寶寶狀況分享與回饋']}</div></div>`;
                     }
